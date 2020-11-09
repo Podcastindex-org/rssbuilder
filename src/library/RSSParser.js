@@ -34,6 +34,13 @@ class RSSParser {
 		}
 		return (+timePieces[0]) * 60 * 60 + (+timePieces[1]) * 60 + (+timePieces[2]); 
 	}
+	decodeXMLString = function (text) {
+		return text.replace(/&apos;/g, "'")
+					.replace(/&quot;/g, '"')
+					.replace(/&gt;/g, '>')
+					.replace(/&lt;/g, '<')
+					.replace(/&amp;/g, '&');
+	}
 	/**
 	* Parses a RSS body
 	*/
@@ -51,8 +58,8 @@ class RSSParser {
 
 		var podcast = xml.rss.channel;
 
-		rssFeed.title = podcast.title;
-		rssFeed.description = podcast.description;
+		rssFeed.title = this.decodeXMLString(podcast.title);
+		rssFeed.description = this.decodeXMLString(podcast.description);
 
 		if (Array.isArray(rssFeed.link)) {
 			rssFeed.link = podcast['link'][0];
@@ -70,6 +77,7 @@ class RSSParser {
 		rssFeed.lastBuildDate = podcast['lastBuildDate'];
 
 		rssFeed.imageUrl = podcast['image'] ? podcast['image']['url'] : false;
+		rssFeed.imageTitle = podcast['image'] ? podcast['image']['title'] : false;
 		rssFeed.imageWidth = podcast['image'] ? podcast['image']['width'] : false;
 		rssFeed.imageHeight = podcast['image'] ? podcast['image']['height'] : false;
 
@@ -79,11 +87,17 @@ class RSSParser {
 
 		rssFeed.keywords = podcast['itunes:keywords'];
 
-		rssFeed.summary = podcast['itunes:summary'];
+		rssFeed.summary = this.decodeXMLString(podcast['itunes:summary']);
 
-		rssFeed.author = podcast['itunes:author'];
+		rssFeed.author = this.decodeXMLString(podcast['itunes:author']);
 
 		rssFeed.explicit = podcast['itunes:explicit'];
+
+		rssFeed.persons = podcast['podcast:person'];
+		rssFeed.contacts = podcast['podcast:contact'];
+		rssFeed.ids = podcast['podcast:id'];
+		rssFeed.funding = podcast['podcast:funding'];
+		rssFeed.images = podcast['podcast:images'];
 
 		if (podcast['itunes:category']) {
 			var categories = [];
@@ -101,36 +115,44 @@ class RSSParser {
 		}
 
 		let episodes = [];
-		podcast.item.forEach((episode) => {
-			if (!episode['itunes:duration']) {
-				episode['itunes:duration'] = '00:00';
+
+		if (podcast.item) {
+			// If there's only one item, it will not be an array, so let's turn it into one.
+			if (!Array.isArray(podcast.item)) {
+				podcast.item = [ podcast.item ];
 			}
 
-			episodes.push({
-				uid: Math.random() * 99999999999, // We just use this to generate keys in React
-				title: episode.title,
-				description: episode['itunes:summary'] ? episode['itunes:summary'] : episode['itunes:subtitle'] ? episode['itunes:subtitle'] : episode['description'] ? episode['description'] : '',
-				author: episode.author ? episode.author : episode['itunes:author'] ? episode['itunes:author'] : false,
-				imageUrl: episode['itunes:image'] ? episode['itunes:image']['href'] : false,
-				explicit: episode['itunes:explicit'],
-				keywords: episode['itunes:keywords'],
-				subtitle: episode['itunes:subtitle'],
-				itunesSummary: episode['itunes:summary'],
-				pubDate: episode.pubDate,
-				date: new Date(Date.parse(episode.pubDate)),
-				link: episode.link,
-				guid: episode.guid ? episode.guid['#text'] : false,
-				guidIsPermaLink: episode.guid ? episode.guid['isPermaLink'] === 'true' ? true : false : false,
-				enclosureType: episode.enclosure ? episode.enclosure.type : '',
-				enclosureLength: episode.enclosure ? episode.enclosure.length : '',
-				enclosureUrl: episode.enclosure ? episode.enclosure.url : '',
-				duration: this.convertDurationToSeconds(episode['itunes:duration']),
-				transcript: episode['podcast:transcript'],
-				chaptersUrl: episode['podcast:chapters'] ? episode['podcast:chapters']['url'] : '',
-				chaptersType: episode['podcast:chapters'] ? episode['podcast:chapters']['type'] : ''
+			podcast.item.forEach((episode) => {
+				if (!episode['itunes:duration']) {
+					episode['itunes:duration'] = '00:00';
+				}
+
+				episodes.push({
+					uid: Math.random() * 99999999999, // We just use this to generate keys in React
+					title: this.decodeXMLString(episode.title),
+					description: this.decodeXMLString(episode['itunes:summary'] ? episode['itunes:summary'] : episode['itunes:subtitle'] ? episode['itunes:subtitle'] : episode['description'] ? episode['description'] : ''),
+					author: this.decodeXMLString(episode.author ? episode.author : episode['itunes:author'] ? episode['itunes:author'] : false),
+					imageUrl: episode['itunes:image'] ? episode['itunes:image']['href'] : false,
+					explicit: episode['itunes:explicit'],
+					keywords: episode['itunes:keywords'],
+					subtitle: episode['itunes:subtitle'],
+					itunesSummary: episode['itunes:summary'],
+					pubDate: episode.pubDate,
+					date: new Date(Date.parse(episode.pubDate)),
+					link: episode.link,
+					guid: episode.guid ? episode.guid['#text'] : false,
+					guidIsPermaLink: episode.guid ? episode.guid['isPermaLink'] === 'true' ? true : false : false,
+					enclosureType: episode.enclosure ? episode.enclosure.type : '',
+					enclosureLength: episode.enclosure ? episode.enclosure.length : '',
+					enclosureUrl: episode.enclosure ? episode.enclosure.url : '',
+					duration: this.convertDurationToSeconds(episode['itunes:duration']),
+					transcript: episode['podcast:transcript'],
+					chaptersUrl: episode['podcast:chapters'] ? episode['podcast:chapters']['url'] : '',
+					chaptersType: episode['podcast:chapters'] ? episode['podcast:chapters']['type'] : ''
+				});
 			});
-		});
-		rssFeed.items = episodes;
+			rssFeed.items = episodes;
+		}
 		return rssFeed;
 	}
 }

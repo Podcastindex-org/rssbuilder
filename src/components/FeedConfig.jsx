@@ -28,6 +28,15 @@ const FeedConfig = ({ rssFeed }) => {
 		setEpisodes(newItems);
 	};
 
+	const addEpisodeTop = () => {
+		rssFeed.items.unshift({
+			uid: Math.random() * 99999999999
+		});
+		const newItems = [...rssFeed.items];
+		setEpisodes(newItems);
+	};
+
+
 	const downloadRSSFile = () => {
 		var dataStr = "data:text/rss;charset=utf-8," + encodeURIComponent(rssFeed.generatePodcastInfoXML());
 		var dlAnchorElem = document.createElement('a');
@@ -82,8 +91,12 @@ const FeedConfig = ({ rssFeed }) => {
 				</div>
 			}
 
+			<Button onClick={addEpisodeTop}>
+				+ Add episode to top
+			</Button>
+
 			<Button onClick={addEpisode}>
-				+ Add episode
+				+ Add episode to bottom
 			</Button>
 
 			<Fab variant="extended" style={{ position: 'fixed', bottom: '20px', right: '20px' }} onClick={downloadRSSFile}>

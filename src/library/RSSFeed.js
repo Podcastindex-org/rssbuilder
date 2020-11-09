@@ -38,14 +38,17 @@ class RSSFeed {
 	*/
 	generatePodcastInfoXML(preview = false) {
 		let code = '';
-		code += '<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">\n';
+		code += '<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md" version="2.0">\n';
 		code += '\t<channel>\n';
-			code += `\t\t<title>${this.title}</title>\n`;
-			if (preview) {
-				code += `\t\t<description>${(this.description.length > 100 ? this.description.substring(0,100) + ' [long text hidden in preview].' : this.description)}</description>\n`;
-			}
-			else {
-				code += `\t\t<description>${this.description}</description>\n`;
+			code += `\t\t<title>${this.encodeXMLString(this.title)}</title>\n`;
+
+			if (this.description) {
+				if (preview) {
+					code += `\t\t<description>${this.encodeXMLString(this.description.length > 100 ? this.description.substring(0,100) + ' [long text hidden in preview].' : this.description)}</description>\n`;
+				}
+				else {
+					code += `\t\t<description>${this.encodeXMLString(this.description)}</description>\n`;
+				}
 			}
 			if (this.summary) {
 				code += `\t\t<itunes:summary>${this.summary}</itunes:summary>\n`;
@@ -64,50 +67,53 @@ class RSSFeed {
 				}
 			}
 			if (this.docs) {
-				code += `\t\t<docs>${this.docs}</docs>\n`;
+				code += `\t\t<docs>${this.encodeXMLString(this.docs)}</docs>\n`;
 			}
 			if (this.language) {
-				code += `\t\t<language>${this.language}</language>\n`;
+				code += `\t\t<language>${this.encodeXMLString(this.language)}</language>\n`;
 			}
 			code += `\t\t<generator>Podcast Index RSS Builder</generator>\n`;
 
 			if (this.pubDate) {
-				code += `\t\t<pubDate>${this.pubDate}</pubDate>\n`;
+				code += `\t\t<pubDate>${this.encodeXMLString(this.pubDate)}</pubDate>\n`;
 			}
 			if (this.lastBuildDate) {
-				code += `\t\t<lastBuildDate>${this.lastBuildDate}</lastBuildDate>\n`;
+				code += `\t\t<lastBuildDate>${this.encodeXMLString(this.lastBuildDate)}</lastBuildDate>\n`;
 			}
 			
 			if (this.copyright) {
-				code += `\t\t<copyright>${this.copyright}</copyright>\n`;
+				code += `\t\t<copyright>${this.encodeXMLString(this.copyright)}</copyright>\n`;
 			}
 			if (this.managingEditor) {
-				code += `\t\t<managingEditor>${this.managingEditor}</managingEditor>\n`;
+				code += `\t\t<managingEditor>${this.encodeXMLString(this.managingEditor)}</managingEditor>\n`;
 			}
 			if (this.webMaster) {
-				code += `\t\t<webMaster>${this.webMaster}</webMaster>\n`;
+				code += `\t\t<webMaster>${this.encodeXMLString(this.webMaster)}</webMaster>\n`;
 			}
 			if (this.author) {
-				code += `\t\t<itunes:author>${this.author}</itunes:author>\n`;
+				code += `\t\t<itunes:author>${this.encodeXMLString(this.author)}</itunes:author>\n`;
 			}
 			if (this.owner || this.ownerEmail) {
 				code += '\t\t<itunes:owner>\n';
 				if (this.owner) {
-					code += `\t\t\t<itunes:name>${this.owner}</itunes:name>\n`;
+					code += `\t\t\t<itunes:name>${this.encodeXMLString(this.owner)}</itunes:name>\n`;
 				}
 				if (this.ownerEmail) {
-					code += `\t\t\t<itunes:email>${this.ownerEmail}</itunes:email>\n`;
+					code += `\t\t\t<itunes:email>${this.encodeXMLString(this.ownerEmail)}</itunes:email>\n`;
 				}
 				code += '\t\t</itunes:owner>\n';
 			}
 
 			if (this.keywords) {
-				code += `\t\t<itunes:keywords>${this.keywords}</itunes:keywords>\n`;
+				code += `\t\t<itunes:keywords>${this.encodeXMLString(this.keywords)}</itunes:keywords>\n`;
 			}
 
 			if (this.imageUrl) {
 				code += `\t\t<image>\n`;
-					code += `\t\t\t<url>${this.imageUrl}</url>\n`;
+					code += `\t\t\t<url>${this.encodeXMLString(this.imageUrl)}</url>\n`;
+					if (this.imageTitle) {
+						code += `\t\t\t<title>${this.encodeXMLString(this.imageTitle)}</title>\n`;
+					}
 					if (this.imageWidth) {
 						code += `\t\t\t<width>${this.imageWidth}</width>\n`;
 					}
@@ -127,6 +133,40 @@ class RSSFeed {
 					code += `\t\t<itunes:category text="${this.categories[z]}" />\n`;
 				}
 			}
+/*
+			console.log(this.persons);
+
+			if (this.persons) {
+				if (!Array.isArray(this.persons)) {
+					this.persons = [this.persons];
+				}
+				this.persons.forEach((person) => {
+					code += '\t\t<podcast:person>';
+					code += person;
+					code += '</podcast:person>\n';
+				});
+			}
+			if (this.contacts) {
+
+			}
+			if (this.ids) {
+
+			}
+			if (this.funding) {
+
+			}
+			if (this.images) {
+
+			}
+*/
+/*
+			rssFeed.persons = podcast['podcast:person'];
+			rssFeed.contacts = podcast['podcast:contact'];
+			rssFeed.ids = podcast['podcast:id'];
+			rssFeed.funding = podcast['podcast:funding'];
+			rssFeed.images = podcast['podcast:images'];
+			*/
+
 			code += this.generatePodcastItemsXML(preview);
 
 			code += '\t</channel>\n';
@@ -139,15 +179,22 @@ class RSSFeed {
 	generatePodcastItemsXML(preview) {
 		return this.items.map((item,index) => {
 			return this.generatePodcastItemXML(item,preview);
-		});
+		}).join('');
 	}
 	addEpisodeLine(item,tagName,attributeName = tagName) {
 		if (item[attributeName]) {
-			return `\t\t\t<${tagName}>${item[attributeName]}</${tagName}>\n`;
+			return `\t\t\t<${tagName}>${this.encodeXMLString(item[attributeName])}</${tagName}>\n`;
 		}
 		else {
 			return '';
 		}
+	}
+	encodeXMLString(text) {
+		  return text.replace(/&/g, '&amp;')
+					 .replace(/</g, '&lt;')
+					 .replace(/>/g, '&gt;')
+					 .replace(/"/g, '&quot;')
+					 .replace(/'/g, '&apos;');
 	}
 	/**
 	*
@@ -157,13 +204,15 @@ class RSSFeed {
 		code += '\t\t<item>\n';
 			code += this.addEpisodeLine(item,'title');
 
-			if (preview) {
-				code += `\t\t\t<description>${(item.description.length > 100 ? item.description.substring(0,100) + ' [long text hidden in preview].' : item.description)}</description>\n`;
-				code += `\t\t\t<itunes:summary>${(item.description.length > 100 ? item.description.substring(0,100) + ' [long text hidden in preview].' : item.description)}</itunes:summary>\n`;
-			}
-			else {
-				code += `\t\t\t<description>${item.description}</description>\n`;
-				code += `\t\t\t<itunes:summary>${item.description}</itunes:summary>\n`;
+			if (item.description && item.description.length) {
+				if (preview) {
+					code += `\t\t\t<description>${this.encodeXMLString(item.description.length > 100 ? item.description.substring(0,100) + ' [long text hidden in preview].' : item.description)}</description>\n`;
+					code += `\t\t\t<itunes:summary>${this.encodeXMLString(item.description.length > 100 ? item.description.substring(0,100) + ' [long text hidden in preview].' : item.description)}</itunes:summary>\n`;
+				}
+				else {
+					code += `\t\t\t<description>${this.encodeXMLString(item.description)}</description>\n`;
+					code += `\t\t\t<itunes:summary>${this.encodeXMLString(item.description)}</itunes:summary>\n`;
+				}
 			}
 			code += this.addEpisodeLine(item,'link');
 			code += this.addEpisodeLine(item,'itunes:subtitle','subtitle');
